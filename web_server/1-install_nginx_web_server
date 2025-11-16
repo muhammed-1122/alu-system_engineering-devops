@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Installs and configures Nginx to serve a custom page
+
+# Update package lists
+sudo apt-get update -y
+
+# Install nginx
+sudo apt-get install nginx -y
+
+# Create a custom index.html file
+# The example shows "Holberton School for the win!", so we use that.
+echo "Holberton School for the win!" | sudo tee /var/www/html/index.html
+
+# Restart nginx (using 'service' as 'systemctl' is not allowed)
+sudo service nginx restart

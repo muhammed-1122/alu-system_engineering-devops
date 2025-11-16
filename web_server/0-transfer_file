@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Transfers a file to a server using scp with specified credentials
+
+# Check if the number of arguments is not equal to 4
+if [ "$#" -ne 4 ]; then
+    echo "Usage: 0-transfer_file PATH_TO_FILE IP USERNAME PATH_TO_SSH_KEY"
+    exit 1
+fi
+
+# Assign arguments to variables for readability
+FILE_PATH="$1"
+SERVER_IP="$2"
+USERNAME="$3"
+SSH_KEY_PATH="$4"
+
+# Execute the scp command
+# -o StrictHostKeyChecking=no disables the host key prompt
+# -i specifies the identity (private key) file
+scp -o StrictHostKeyChecking=no -i "$SSH_KEY_PATH" "$FILE_PATH" "$USERNAME"@"$SERVER_IP":~/
