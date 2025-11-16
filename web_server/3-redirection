@@ -7,10 +7,14 @@ sudo apt-get install nginx -y
 echo "Holberton School for the win!" | sudo tee /var/www/html/index.html
 
 # --- Configuration for 301 Redirect ---
-# Insert the redirect rule into the default site configuration
-# This 'sed' command adds the location block after the 'server_name _;' line
-CONFIG_TEXT="\\\n\tlocation /redirect_me {\n\t\treturn 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;\n\t}"
-sudo sed -i "/server_name _;/a $CONFIG_TEXT" /etc/nginx/sites-available/default
+CONFIG_FILE="/etc/nginx/sites-available/default"
+REDIRECT_TEXT="\\\n\tlocation /redirect_me {\n\t\treturn 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;\n\t}"
+
+# This 'grep' command checks if the file *already* contains "/redirect_me"
+if ! grep -q "/redirect_me" "$CONFIG_FILE"; then
+    # If it's NOT there, 'sed' adds it.
+    sudo sed -i "/server_name _;/a $REDIRECT_TEXT" "$CONFIG_FILE"
+fi
 
 # Restart nginx
 sudo service nginx restart

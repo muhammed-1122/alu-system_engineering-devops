@@ -17,3 +17,4 @@ SSH_KEY_PATH="$4"
 # -o StrictHostKeyChecking=no disables the host key prompt
 # -i specifies the identity (private key) file
 scp -o StrictHostKeyChecking=no -i "$SSH_KEY_PATH" "$FILE_PATH" "$USERNAME"@"$SERVER_IP":~/
+./0-transfer_file 1-install_nginx_web_server 34.207.191.228 ubuntu ~/.ssh/school
