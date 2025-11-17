@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# This script installs and configures HAproxy on a new Ubuntu server.
+# It balances traffic between web-01 and web-02 using roundrobin.
+
+# --- 1. Installation ---
+sudo apt-get update -y
+sudo apt-get install haproxy -y
+
+# --- 2. Enable HAproxy Init Script ---
+# This is required for the 'service' command to manage HAproxy
+sudo sed -i 's/ENABLED=0/ENABLED=1/' /etc/default/haproxy
+
+# --- 3. Write HAproxy Configuration ---
+# We use 'tee -a' to append our new config to the end of the file.
+# This is safer than overwriting the whole file.
+sudo tee -a /etc/haproxy/haproxy.cfg > /dev/null << 'EOF'
+
+# --- Configuration for our web servers ---
+frontend http_front
+    bind *:80
+    mode http
+    default_backend http_back
+
+backend http_back
+    mode http
+    balance roundrobin
+    server web-01 34.207.191.228 check
+    server web-02 52.90.221.65 check
+EOF
+
+# --- 4. Restart HAproxy ---
+# Restart the service to apply all our changes
+sudo service haproxy restart
