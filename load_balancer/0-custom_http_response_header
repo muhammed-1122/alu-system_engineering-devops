@@ -1,39 +1,50 @@
 #!/usr/bin/env bash
-# This script configures a new Ubuntu server with Nginx and adds a custom X-Served-By HTTP header.
-# It also includes all configurations from the previous project (pages, redirect, 404).
+# This script configures a new Ubuntu server with Nginx.
+# It overwrites the default config with a complete, correct configuration.
 
-# --- Installation (from Task 1) ---
+# --- 1. Installation ---
 sudo apt-get update -y
 sudo apt-get install nginx -y
 
-# --- Page Content ---
+# --- 2. Create Content Files ---
 echo "Holberton School for the win!" | sudo tee /var/www/html/index.html
 echo "Ceci n'est pas une page" | sudo tee /var/www/html/404.html
 
-CONFIG_FILE="/etc/nginx/sites-available/default"
+# --- 3. Define the *Entire* Nginx Config ---
+# We create the full config in a variable.
+CONFIG_CONTENT="server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
 
-# --- Config for 301 Redirect (from Task 3) ---
-REDIRECT_CONFIG="\\\n\tlocation /redirect_me {\n\t\treturn 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;\n\t}"
-# Check if redirect is already there before adding it
-if ! grep -q "location /redirect_me" "$CONFIG_FILE"; then
-    sudo sed -i "/server_name _;/a $REDIRECT_CONFIG" "$CONFIG_FILE"
-fi
+    root /var/www/html;
+    index index.html index.htm;
 
-# --- Config for 404 Page (from Task 4) ---
-ERROR_CONFIG="\\\n\terror_page 404 /404.html;\n\tlocation = /404.html {\n\t\troot /var/www/html;\n\t\tinternal;\n\t}"
-# Check if 404 config is already there before adding it
-if ! grep -q "error_page 404 /404.html;" "$CONFIG_FILE"; then
-    sudo sed -i "/index index.html index.htm;/a $ERROR_CONFIG" "$CONFIG_FILE"
-fi
+    server_name _;
 
-# --- NEW Config for Custom Header (Task 0) ---
-# Add the X-Served-By header. $hostname is an Nginx variable
-HEADER_CONFIG="\\\n\tadd_header X-Served-By \$hostname;"
-# Check if header is already there before adding it
-if ! grep -q "add_header X-Served-By" "$CONFIG_FILE"; then
-    # Add it after the 'server_name _;' line
-    sudo sed -i "/server_name _;/a $HEADER_CONFIG" "$CONFIG_FILE"
-fi
+    # Custom Header (Task 0)
+    add_header X-Served-By \$hostname;
 
-# Restart nginx
+    # Redirect (Task 3)
+    location /redirect_me {
+        return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;
+    }
+
+    # Custom 404 (Task 4)
+    error_page 404 /404.html;
+    location = /404.html {
+        root /var/www/html;
+        internal;
+    }
+
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+}
+"
+
+# --- 4. Overwrite the Old File ---
+# This command writes our new config, completely replacing the broken file.
+echo "$CONFIG_CONTENT" | sudo tee /etc/nginx/sites-available/default
+
+# --- 5. Restart Nginx ---
 sudo service nginx restart
