@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # This script configures a new Ubuntu server with Nginx.
-# It overwrites the default config with a complete, correct configuration.
+# It OVERWRITES the default config with a complete, correct configuration.
 
 # --- 1. Installation ---
 sudo apt-get update -y
@@ -10,9 +10,13 @@ sudo apt-get install nginx -y
 echo "Holberton School for the win!" | sudo tee /var/www/html/index.html
 echo "Ceci n'est pas une page" | sudo tee /var/www/html/404.html
 
-# --- 3. Define the *Entire* Nginx Config ---
-# We create the full config in a variable.
-CONFIG_CONTENT="server {
+# --- 3. Overwrite the Old File ---
+# This 'tee << EOF' command writes a complete, new config file,
+# replacing the old broken one. This is the safest way.
+# We use 'EOF' (with quotes) so $hostname and $uri are written
+# literally, for Nginx to interpret.
+sudo tee /etc/nginx/sites-available/default > /dev/null << 'EOF'
+server {
     listen 80 default_server;
     listen [::]:80 default_server;
 
@@ -22,7 +26,7 @@ CONFIG_CONTENT="server {
     server_name _;
 
     # Custom Header (Task 0)
-    add_header X-Served-By \$hostname;
+    add_header X-Served-By $hostname;
 
     # Redirect (Task 3)
     location /redirect_me {
@@ -37,14 +41,19 @@ CONFIG_CONTENT="server {
     }
 
     location / {
-        try_files \$uri \$uri/ =404;
+        try_files $uri $uri/ =404;
     }
 }
-"
+EOF
 
-# --- 4. Overwrite the Old File ---
-# This command writes our new config, completely replacing the broken file.
-echo "$CONFIG_CONTENT" | sudo tee /etc/nginx/sites-available/default
+# --- 4. Test and Restart Nginx ---
+# Test the new config file first
+sudo nginx -t
 
-# --- 5. Restart Nginx ---
-sudo service nginx restart
+# If the test is successful, restart the service
+if [ $? -eq 0 ]; then
+    echo "Nginx config is OK. Restarting Nginx..."
+    sudo service nginx restart
+else
+    echo "Nginx config test failed! Not restarting."
+fi
