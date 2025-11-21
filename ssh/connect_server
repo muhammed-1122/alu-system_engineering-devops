@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Connects to the specified server using the private key ~/.ssh/school.
+# Usage: ./connect_server <web-01 | web-02 | lb-01>
+
+# Check if a server name was provided
+if [ -z "$1" ]; then
+    echo "Usage: ./connect_server <web-01 | web-02 | lb-01>"
+    exit 1
+fi
+
+# Define the user and key path
+USER="ubuntu"
+KEY_PATH="~/.ssh/school"
+SERVER_NAME="$1"
+IP=""
+
+# Map the server name to its IP address
+case "$SERVER_NAME" in
+    "web-01")
+        IP="34.207.191.228"
+        ;;
+    "web-02")
+        IP="52.90.221.65"
+        ;;
+    "lb-01")
+        IP="18.207.173.143"
+        ;;
+    *)
+        echo "Error: Unknown server name '$SERVER_NAME'. Must be web-01, web-02, or lb-01."
+        exit 1
+        ;;
+esac
+
+# Connect to the server
+echo "Connecting to $SERVER_NAME ($IP) as $USER..."
+ssh -i "$KEY_PATH" "$USER"@"$IP"

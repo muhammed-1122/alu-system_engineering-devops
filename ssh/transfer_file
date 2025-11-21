@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Transfers a file to a specified server by name (web-01, lb-01, etc.).
+# Usage: ./1-transfer_file_by_name PATH_TO_FILE SERVER_NAME USERNAME
+
+# Define hardcoded path for the private key
+SSH_KEY_PATH="~/.ssh/school"
+
+# Check if the correct number of arguments (3) is provided
+if [ "$#" -ne 3 ]; then
+    echo "Usage: ./1-transfer_file_by_name PATH_TO_FILE SERVER_NAME USERNAME"
+    echo "Example: ./1-transfer_file_by_name index.html web-01 ubuntu"
+    exit 1
+fi
+
+# Assign arguments to variables
+FILE_PATH="$1"
+SERVER_NAME="$2"
+USERNAME="$3"
+IP=""
+
+# Map the server name to its IP address
+case "$SERVER_NAME" in
+    "web-01")
+        IP="34.207.191.228"
+        ;;
+    "web-02")
+        IP="52.90.221.65"
+        ;;
+    "lb-01")
+        IP="18.207.173.143"
+        ;;
+    *)
+        echo "Error: Unknown server name '$SERVER_NAME'. Must be web-01, web-02, or lb-01."
+        exit 1
+        ;;
+esac
+
+# Execute the scp command
+# -o StrictHostKeyChecking=no disables the host key prompt
+# -i specifies the identity (private key) file
+scp -o StrictHostKeyChecking=no -i "$SSH_KEY_PATH" "$FILE_PATH" "$USERNAME"@"$IP":~/
