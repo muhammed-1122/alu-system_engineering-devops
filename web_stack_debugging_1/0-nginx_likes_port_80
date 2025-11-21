@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Ensures Nginx is running and listening on port 80 by installing it and fixing the worker processes configuration.
+
+sudo apt-get update
+sudo apt-get install nginx -y
+
+sudo killall nginx
+
+sudo sed -i '/worker_processes/c\worker_processes 1;' /etc/nginx/nginx.conf
+
+sudo service nginx start
