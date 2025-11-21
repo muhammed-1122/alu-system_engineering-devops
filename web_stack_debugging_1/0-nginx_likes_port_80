@@ -8,4 +8,5 @@ sudo killall nginx
 
 sudo sed -i '/worker_processes/c\worker_processes 1;' /etc/nginx/nginx.conf
 
-sudo service nginx start
+# This command directly executes the Nginx binary, bypassing the broken 'service' command.
+sudo /usr/sbin/nginx
