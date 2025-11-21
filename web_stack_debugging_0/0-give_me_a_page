@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Fixes the broken Apache web server and serves "Hello Holberton".
+
+sudo apt-get update
+sudo apt-get install apache2 -y
+
+echo "Hello Holberton" | sudo tee /var/www/html/index.html > /dev/null
+
+sudo apache2ctl start
