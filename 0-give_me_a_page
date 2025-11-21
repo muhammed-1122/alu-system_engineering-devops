@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Fixes the broken Apache web server and serves "Hello Holberton" at the root path.
+
+# 1. Start the Apache web server (assuming 'apache2' on a Debian/Ubuntu base)
+service apache2 start
+
+# 2. Overwrite the default index file to contain the required string
+# Assumes the web root is /var/www/html, which is standard for Apache on Ubuntu/Debian
+echo "Hello Holberton" > /var/www/html/index.html
