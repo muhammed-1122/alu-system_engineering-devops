@@ -1,23 +1,67 @@
 #!/usr/bin/env bash
-# Installs Nginx, configures redirect, and sets a custom 404 page
+# Installs Nginx and configures Holberton root page, 301 redirection, and a custom 404 error page.
 
-# --- Installation (from Task 1) ---
-sudo apt-get update -y
-sudo apt-get install nginx -y
-echo "Holberton School for the win!" | sudo tee /var/www/html/index.html
+# 1. Update packages and install Nginx
+sudo apt-get -y update
+sudo apt-get -y install nginx
 
-# --- Create Custom 404 Page ---
-echo "Ceci n'est pas une page" | sudo tee /var/www/html/404.html
+# 2. Create the custom content pages
+# Root page content (Task 1: must contain "Holberton School")
+echo "Holberton School" | sudo tee /var/www/html/index.html > /dev/null
 
-# --- Configuration for 301 Redirect (from Task 3) ---
-REDIRECT_CONFIG="\\\n\tlocation /redirect_me {\n\t\treturn 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;\n\t}"
-sudo sed -i "/server_name _;/a $REDIRECT_CONFIG" /etc/nginx/sites-available/default
+# Custom 404 page content (Task 4: must contain "Ceci n'est pas une page")
+CUSTOM_404_PAGE="/var/www/html/404.html"
+echo "Ceci n'est pas une page" | sudo tee "$CUSTOM_404_PAGE" > /dev/null
 
-# --- Configuration for 404 Page ---
-# Insert the error_page config
-# This 'sed' command adds the 404 config after the 'index index.html...' line
-ERROR_CONFIG="\\\n\terror_page 404 /404.html;\n\tlocation = /404.html {\n\t\troot /var/www/html;\n\t\tinternal;\n\t}"
-sudo sed -i "/index index.html index.htm;/a $ERROR_CONFIG" /etc/nginx/sites-available/default
+# 3. Define the complete, clean Nginx configuration (Tasks 1, 3, and 4)
+# This Heredoc overwrites the default config to prevent "duplicate location" errors.
+CONFIG_CONTENT=$(cat << EOF
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
 
-# Restart nginx
-sudo service nginx restart
+    root /var/www/html;
+    index index.html index.htm;
+
+    server_name _;
+
+    # Task 4 Custom 404 setup
+    error_page 404 /404.html;
+
+    # Task 3 Redirection (301 Moved Permanently)
+    location /redirect_me {
+        return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;
+    }
+
+    # Location block to serve the custom 404 page internally
+    location = /404.html {
+        internal;
+    }
+}
+EOF
+)
+
+# 4. OVERWRITE the default configuration file
+CONFIG_FILE="/etc/nginx/sites-available/default"
+echo "$CONFIG_CONTENT" | sudo tee "$CONFIG_FILE" > /dev/null
+
+# 5. Test Nginx configuration
+sudo nginx -t
+
+# Check the exit status of the test command
+if [ $? -eq 0 ]; then
+    # 6. Restart Nginx without using systemctl
+    # Stop then start sequence is more reliable than restart to avoid stuck processes
+    sudo service nginx stop
+    sleep 1 # Wait one second to ensure port 80 is released
+    sudo service nginx start
+    if [ $? -eq 0 ]; then
+        echo "Nginx successfully configured and started."
+    else
+        echo "Nginx service failed to start despite config being OK. Check system logs for port conflict."
+        exit 1
+    fi
+else
+    echo "Nginx configuration test failed. Review the CONFIG_CONTENT section."
+    exit 1
+fi
