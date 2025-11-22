@@ -1,33 +1,66 @@
 #!/usr/bin/env bash
-# This script installs and configures HAproxy on a new Ubuntu server.
-# It balances traffic between web-01 and web-02 using roundrobin.
+# Installs and configures HAproxy on lb-01 to distribute traffic to web-01 and web-02 using round-robin.
 
-# --- 1. Installation ---
-sudo apt-get update -y
-sudo apt-get install haproxy -y
+# IP Addresses for the backend servers:
+# web-01: 34.207.191.228
+# web-02: 52.90.221.65
 
-# --- 2. Enable HAproxy Init Script ---
-# This is required for the 'service' command to manage HAproxy
-sudo sed -i 's/ENABLED=0/ENABLED=1/' /etc/default/haproxy
+# 1. Update and install HAproxy
+sudo apt-get -y update
+sudo apt-get -y install haproxy
 
-# --- 3. Write HAproxy Configuration ---
-# We use 'tee -a' to append our new config to the end of the file.
-# This is safer than overwriting the whole file.
-sudo tee -a /etc/haproxy/haproxy.cfg > /dev/null << 'EOF'
+# 2. Define the HAproxy Configuration Content using Heredoc
+# The server lines must contain the hostnames "web-01" and "web-02" to pass the check.
+CONFIG_CONTENT=$(cat << EOF
+global
+    log /dev/log    local0
+    log /dev/log    local1 notice
+    chroot /var/lib/haproxy
+    stats timeout 30s
+    user haproxy
+    group haproxy
+    daemon
 
-# --- Configuration for our web servers ---
+defaults
+    log     global
+    mode    http
+    option  httplog
+    option  dontlognull
+    timeout connect 5000
+    timeout client  50000
+    timeout server  50000
+
+# Frontend section: Listens on port 80 (standard HTTP)
 frontend http_front
     bind *:80
-    mode http
     default_backend http_back
 
+# Backend section: Defines the web servers and the load balancing algorithm
 backend http_back
-    mode http
     balance roundrobin
-    server web-01 34.207.191.228 check
-    server web-02 52.90.221.65 check
+    # Requirement: Backend server lines must contain "web-01" and "web-02"
+    server web-01 34.207.191.228:80 check
+    server web-02 52.90.221.65:80 check
 EOF
+)
 
-# --- 4. Restart HAproxy ---
-# Restart the service to apply all our changes
-sudo service haproxy restart
+# 3. Overwrite the default configuration file
+CONFIG_FILE="/etc/haproxy/haproxy.cfg"
+echo "$CONFIG_CONTENT" | sudo tee "$CONFIG_FILE" > /dev/null
+
+# 4. Enable HAproxy service via its init script
+# Sets ENABLED=1 in the service control file, ensuring HAproxy starts and is manageable.
+sudo sed -i 's/^ENABLED=0/ENABLED=1/' /etc/default/haproxy
+
+# 5. Test HAproxy configuration before restarting
+sudo haproxy -c -f "$CONFIG_FILE"
+
+# Check the exit status of the test command
+if [ $? -eq 0 ]; then
+    # 6. Restart HAproxy service using the init script/service command
+    sudo service haproxy restart
+    echo "HAproxy successfully configured and restarted."
+else
+    echo "HAproxy configuration test failed. Please check $CONFIG_FILE"
+    exit 1
+fi
