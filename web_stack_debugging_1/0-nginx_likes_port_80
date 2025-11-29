@@ -1,4 +1,4 @@
-k#!/usr/bin/env bash
+#!/usr/bin/env bash
 # Configures Nginx to listen on ports 80 and 200 and ensures it is running.
 
 set -e
