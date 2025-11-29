@@ -4,15 +4,18 @@
 set -e
 
 # Uncomment IPv4 listen on port 80.
-sudo sed -i 's/^#\s*listen 80 default_server;/listen 80 default_server;/' /etc/nginx/sites-available/default
+sudo /bin/sed -i 's/^#\s*listen 80 default_server;/listen 80 default_server;/' /etc/nginx/sites-available/default
 
 # Ensure 'listen 200;' is configured after port 80.
-sudo sed -i '/listen 200;/d' /etc/nginx/sites-available/default
-sudo sed -i '/listen 80 default_server;/a listen 200;' /etc/nginx/sites-available/default
+sudo /bin/sed -i '/listen 200;/d' /etc/nginx/sites-available/default
+sudo /bin/sed -i '/listen 80 default_server;/a listen 200;' /etc/nginx/sites-available/default
 
-# Check configuration and restart Nginx.
-sudo nginx -t
+# Check configuration using full path and restart Nginx.
+sudo /usr/sbin/nginx -t
 sudo service nginx restart
+
+# Wait 1 second for Nginx to fully bind to ports (mitigate race condition).
+/bin/sleep 1
 
 # Required exit status for the checker.
 exit 2
