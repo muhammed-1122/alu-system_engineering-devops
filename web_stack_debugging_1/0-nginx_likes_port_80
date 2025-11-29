@@ -1,8 +1,18 @@
 #!/usr/bin/env bash
-# Ensures Nginx is running and listening on port 80 (IPv4).
+# Ensures Nginx is running and listening on ports 80 and 200.
 
-# Uncomment the IPv4 'listen 80 default_server;' directive in the default config.
-sed -i 's/^#\s*listen 80 default_server;/listen 80 default_server;/' /etc/nginx/sites-available/default
+# 1. Uncomment 'listen 80 default_server;' in the default config.
+sudo sed -i 's/^#\s*listen 80 default_server;/listen 80 default_server;/' /etc/nginx/sites-available/default
 
-# Restart the Nginx service to load the new configuration.
-service nginx restart
+# 2. Ensure 'listen 200;' is configured idempotently:
+# a) Remove any existing 'listen 200;' directives to prevent duplicates.
+sudo sed -i '/listen 200;/d' /etc/nginx/sites-available/default
+
+# b) Insert 'listen 200;' right after the 'listen 80' line.
+sudo sed -i '/listen 80 default_server;/a listen 200;' /etc/nginx/sites-available/default
+
+# Restart Nginx to apply changes.
+sudo service nginx restart
+
+# Exit with status 2.
+exit 2
