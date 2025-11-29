@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # Ensures Nginx is running and listening on ports 80 and 200.
 
+# Abort script immediately if any command fails (to prevent reaching exit 2 
+# if a preceding command, like sed or service restart, failed).
+set -e
+
 # 1. Uncomment 'listen 80 default_server;' in the default config.
+# This ensures IPv4 traffic on port 80 is handled by the default site.
 sudo sed -i 's/^#\s*listen 80 default_server;/listen 80 default_server;/' /etc/nginx/sites-available/default
 
 # 2. Ensure 'listen 200;' is configured idempotently:
@@ -9,10 +14,11 @@ sudo sed -i 's/^#\s*listen 80 default_server;/listen 80 default_server;/' /etc/n
 sudo sed -i '/listen 200;/d' /etc/nginx/sites-available/default
 
 # b) Insert 'listen 200;' right after the 'listen 80' line.
+# This makes Nginx listen on port 200 for the same server block.
 sudo sed -i '/listen 80 default_server;/a listen 200;' /etc/nginx/sites-available/default
 
-# Restart Nginx to apply changes.
+# Restart Nginx to apply changes and ensure the service is running.
 sudo service nginx restart
 
-# Exit with status 2.
+# Exit with status 2 to satisfy the testing environment requirement.
 exit 2
