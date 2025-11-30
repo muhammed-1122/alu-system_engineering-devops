@@ -5,43 +5,38 @@ NGINX_CONF="/etc/nginx/nginx.conf"
 SITE_AVAIL="/etc/nginx/sites-available/default"
 SITE_ENABLED="/etc/nginx/sites-enabled/default"
 
-# 1. Ensure the 'nginx' system user exists
 if ! id "nginx" &>/dev/null; then
     sudo useradd -r -M -s /sbin/nologin nginx
 fi
 
-# 2. GUARANTEE 'user nginx;' is in the main context
-# Remove any existing user line first, then insert the correct one at the top.
-sudo sed -i '/^\s*user\s\+[^;]\+;/d' "$NGINX_CONF"
+sudo sed -i.bak 's/^\s*user www-data;/user nginx;/g' "$NGINX_CONF"
+sudo sed -i.bak 's/^\s*user nobody;/user nginx;/g' "$NGINX_CONF"
 if ! grep -q "^user nginx;" "$NGINX_CONF"; then
     sudo sed -i '1auser nginx;' "$NGINX_CONF"
 fi
 
-# 3. Change 'listen' port to 8080 in the main config (safety)
 sudo sed -i '0,/listen [0-9]\{1,5\};/s/listen [0-9]\{1,5\};/listen 8080;/' "$NGINX_CONF"
 
-# 4. Change 'listen' port to 8080 in the default site configuration (overrides)
-sudo sed -i '/listen 80;/d' "$SITE_AVAIL"
-sudo sed -i '/listen [::]:80;/d' "$SITE_AVAIL"
-
-if ! grep -q "listen 8080;" "$SITE_AVAIL"; then
-    sudo sed -i '/^server {/a \        listen 8080;' "$SITE_AVAIL"
-    sudo sed -i '/^server {/a \        listen [::]:8080;' "$SITE_AVAIL"
-fi
+sudo sed -i 's/listen 80;/listen 8080;/g' "$SITE_AVAIL"
+sudo sed -i 's/listen [::]:80;/listen [::]:8080;/g' "$SITE_AVAIL"
 
 if [ ! -L "$SITE_ENABLED" ]; then
     sudo ln -sf "$SITE_AVAIL" "$SITE_ENABLED"
 fi
 
-# 5. Test Configuration and Restart Nginx
+sudo chown -R nginx:nginx /var/log/nginx
+if [ -d "/var/lib/nginx" ]; then
+    sudo chown -R nginx:nginx /var/lib/nginx
+fi
+
 sudo nginx -t
 
 if [ $? -eq 0 ]; then
-    sudo fuser -k 8080/tcp 2>/dev/null
-    sudo service nginx restart
+    sudo pkill -f nginx || true
+    sleep 1
+    sudo service nginx start
 fi
 
-# --- Checks ---
 if pgrep -u nginx nginx &>/dev/null; then
     echo "Nginx is running as nginx user."
 else
