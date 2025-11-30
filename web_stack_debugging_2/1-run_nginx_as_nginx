@@ -36,7 +36,8 @@ if [ $? -eq 0 ]; then
     sudo service nginx restart
 fi
 
-if ps aux | grep ngin[x] | grep -q "^nginx"; then
+# Shellcheck-compliant check for 'nginx' user
+if pgrep -u nginx nginx &>/dev/null; then
     echo "Nginx is running as nginx user."
 else
     echo "Nginx is NOT running as nginx user."
