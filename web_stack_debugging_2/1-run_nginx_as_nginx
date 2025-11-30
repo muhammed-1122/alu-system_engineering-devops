@@ -2,6 +2,8 @@
 # This script configures Nginx to run as the 'nginx' user and listen on port 8080.
 
 NGINX_CONF="/etc/nginx/nginx.conf"
+SITE_AVAIL="/etc/nginx/sites-available/default"
+SITE_ENABLED="/etc/nginx/sites-enabled/default"
 
 if ! id "nginx" &>/dev/null; then
     sudo useradd -r -M -s /sbin/nologin nginx
@@ -15,9 +17,33 @@ fi
 
 sudo sed -i '0,/listen [0-9]\{1,5\};/s/listen [0-9]\{1,5\};/listen 8080;/' "$NGINX_CONF"
 
+sudo sed -i '/listen 80;/d' "$SITE_AVAIL"
+sudo sed -i '/listen [::]:80;/d' "$SITE_AVAIL"
+
+if ! grep -q "listen 8080;" "$SITE_AVAIL"; then
+    sudo sed -i '/^server {/a \        listen 8080;' "$SITE_AVAIL"
+    sudo sed -i '/^server {/a \        listen [::]:8080;' "$SITE_AVAIL"
+fi
+
+if [ ! -L "$SITE_ENABLED" ]; then
+    sudo ln -sf "$SITE_AVAIL" "$SITE_ENABLED"
+fi
+
 sudo nginx -t
 
 if [ $? -eq 0 ]; then
-    sudo systemctl stop nginx || true
-    sudo systemctl start nginx
+    sudo fuser -k 8080/tcp 2>/dev/null
+    sudo service nginx restart
+fi
+
+if ps aux | grep ngin[x] | grep -q "^nginx"; then
+    echo "Nginx is running as nginx user."
+else
+    echo "Nginx is NOT running as nginx user."
+fi
+
+if nc -z 0 8080 2>/dev/null; then
+    echo "Nginx is listening on port 8080."
+else
+    echo "Nginx is NOT listening on port 8080."
 fi
