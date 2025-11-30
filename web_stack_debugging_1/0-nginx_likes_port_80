@@ -1,21 +1,34 @@
-#!/usr/bin/env bash
-# Configures Nginx to listen on ports 80 and 200 and ensures it is running.
+k#!/usr/bin/env bash
+# This script stops the conflicting service on port 80 and starts Nginx.
 
-set -e
+# Stop Apache2 service which is typically running on port 80
+sudo service apache2 stop 2>/dev/null || true
 
-# Uncomment IPv4 listen on port 80.
-sudo /bin/sed -i 's/^#\s*listen 80 default_server;/listen 80 default_server;/' /etc/nginx/sites-available/default
+# Disable Apache2 service to prevent it from restarting on next boot
+sudo systemctl disable apache2 2>/dev/null || true
 
-# Ensure 'listen 200;' is configured after port 80.
-sudo /bin/sed -i '/listen 200;/d' /etc/nginx/sites-available/default
-sudo /bin/sed -i '/listen 80 default_server;/a listen 200;' /etc/nginx/sites-available/default
+# Start Nginx service
+sudo service nginx start
 
-# Check configuration using full path and restart Nginx.
-sudo /usr/sbin/nginx -t
-sudo service nginx restart
+# --- Verification Checks ---
 
-# Wait 1 second for Nginx to fully bind to ports (mitigate race condition).
-/bin/sleep 1
+# Check 1: Nginx is running (process check)
+if sudo pgrep -f nginx &>/dev/null; then
+    echo "SUCCESS: Nginx process is running."
+else
+    echo "FAILURE: Nginx process is not running."
+fi
 
-# Required exit status for the checker.
-exit 2
+# Check 2: Nginx is listening on port 80 (socket check using ss)
+if sudo ss -tuln | grep -q ':80'; then
+    echo "SUCCESS: Nginx is listening on port 80."
+else
+    echo "FAILURE: Nginx is NOT listening on port 80."
+fi
+
+# Check 3: Web stack is accessible (functional check using curl)
+if curl -sI 0:80 | grep -q "200 OK"; then
+    echo "SUCCESS: Server responds with 200 OK."
+else
+    echo "FAILURE: Server does not respond with 200 OK."
+fi
